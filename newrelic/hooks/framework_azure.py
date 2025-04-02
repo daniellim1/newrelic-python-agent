@@ -24,6 +24,9 @@ from newrelic.common.object_wrapper import wrap_function_wrapper
 
 def wrap_dispatcher__init__(wrapped, instance, args, kwargs):
     instance._nr_cold_start = True
+    # Force default registration of the application instance
+    # instead of lazy registration upon the first request
+    application_instance(os.environ.get("WEBSITE_SITE_NAME", None)).activate()
     return wrapped(*args, **kwargs)
 
 
