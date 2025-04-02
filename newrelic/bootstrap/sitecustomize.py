@@ -108,13 +108,20 @@ python_prefix_matches = expected_python_prefix == actual_python_prefix
 python_version_matches = expected_python_version == actual_python_version
 k8s_operator_enabled = os.environ.get("NEW_RELIC_K8S_OPERATOR_ENABLED", "off").lower() in ("on", "true", "1")
 azure_operator_enabled = os.environ.get("NEW_RELIC_AZURE_OPERATOR_ENABLED", "off").lower() in ("on", "true", "1")
+azure_functions_enabled = os.environ.get("FUNCTIONS_WORKER_RUNTIME").lower() == "python"
 
 log_message("python_prefix_matches = %r", python_prefix_matches)
 log_message("python_version_matches = %r", python_version_matches)
 log_message("k8s_operator_enabled = %r", k8s_operator_enabled)
 log_message("azure_operator_enabled = %r", azure_operator_enabled)
+log_message("azure_functions_enabled = %r", azure_functions_enabled)
 
-if k8s_operator_enabled or azure_operator_enabled or (python_prefix_matches and python_version_matches):
+if (
+    k8s_operator_enabled
+    or azure_operator_enabled
+    or azure_functions_enabled
+    or (python_prefix_matches and python_version_matches)
+):
     # We also need to skip agent initialisation if neither the license
     # key or config file environment variables are set. We do this as
     # some people like to use a common startup script which always uses
@@ -130,7 +137,15 @@ if k8s_operator_enabled or azure_operator_enabled or (python_prefix_matches and 
     log_message("initialize_agent = %r", initialize_agent)
 
     if initialize_agent:
-        if k8s_operator_enabled or azure_operator_enabled:
+        if azure_functions_enabled:
+            try:
+                sys.path.insert(0, boot_directory)
+            finally:
+                del_sys_path_entry(boot_directory)
+
+            new_relic_path = boot_directory
+            do_insert_path = False
+        elif k8s_operator_enabled or azure_operator_enabled:
             # When installed with either the kubernetes operator or the
             # azure operator functionality enabled, we need to attempt to
             # find a distribution from our initcontainer that matches the

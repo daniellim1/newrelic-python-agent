@@ -64,10 +64,7 @@ async def wrap_dispatcher__run_async_func(wrapped, instance, args, kwargs):
         return context, func, args
 
     context, func, params = bind_params(*args, **kwargs)
-    application = application_instance(activate=False)
-    if not application:
-        # Create new application instance here
-        application = application_instance(os.environ.get("WEBSITE_SITE_NAME", None))
+    application = application_instance(os.environ.get("WEBSITE_SITE_NAME", None), activate=False)
 
     http_request = None
     for key, value in params.items():
@@ -157,10 +154,7 @@ def wrap_dispatcher__run_sync_func(wrapped, instance, args, kwargs):
         return invocation_id, context, func, params
 
     invocation_id, context, func, params = bind_params(*args, **kwargs)
-    application = application_instance(activate=False)
-    if not application:
-        # Create new application instance here
-        application = application_instance(os.environ.get("WEBSITE_SITE_NAME", None))
+    application = application_instance(os.environ.get("WEBSITE_SITE_NAME", None), activate=False)
 
     http_request = None
     for key, value in params.items():
