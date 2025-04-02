@@ -27,6 +27,14 @@ def wrap_dispatcher__init__(wrapped, instance, args, kwargs):
     return wrapped(*args, **kwargs)
 
 
+async def wrap_dispatcher_connect(wrapped, instance, args, kwargs):
+    # Force default registration of the application instance
+    # instead of lazy registration upon the first request
+    application_instance(os.environ.get("WEBSITE_SITE_NAME", None)).activate()
+
+    return await wrapped(*args, **kwargs)
+
+
 # TODO: This should serve as a way to determine the trigger type.
 # Right now, we only support HTTP, so this function is moot
 # but this will need to be utilized in the future
@@ -38,10 +46,6 @@ async def wrap_dispatcher__handle__invocation_request(wrapped, instance, args, k
 
     if not request:
         return await wrapped(*args, **kwargs)
-
-    # Force default registration of the application instance
-    # instead of lazy registration upon the first request
-    application_instance(os.environ.get("WEBSITE_SITE_NAME", None)).activate()
 
     # For now, NR only supports HTTP triggers
     function_id = request.invocation_request.function_id
@@ -264,6 +268,8 @@ def instrument_azure_functions_worker_dispatcher(module):
         wrap_function_wrapper(
             module, "Dispatcher._handle__invocation_request", wrap_dispatcher__handle__invocation_request
         )
+    if hasattr(module, "Dispatcher") and hasattr(module.Dispatcher, "connect"):
+        wrap_function_wrapper(module, "Dispatcher.connect", wrap_dispatcher_connect)
     if hasattr(module, "Dispatcher") and hasattr(module.Dispatcher, "__init__"):
         wrap_function_wrapper(module, "Dispatcher.__init__", wrap_dispatcher__init__)
     if hasattr(module, "Dispatcher") and hasattr(module.Dispatcher, "_run_sync_func"):
