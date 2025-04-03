@@ -140,10 +140,8 @@ if (
         if azure_functions_enabled:
             try:
                 sys.path.insert(0, boot_directory)
-            # finally:
-            #     del_sys_path_entry(boot_directory)
-            except:
-                pass
+            finally:
+                del_sys_path_entry(boot_directory)
 
             new_relic_path = boot_directory
             do_insert_path = True
