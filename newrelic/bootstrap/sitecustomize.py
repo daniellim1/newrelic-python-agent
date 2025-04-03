@@ -140,11 +140,13 @@ if (
         if azure_functions_enabled:
             try:
                 sys.path.insert(0, boot_directory)
-            finally:
-                del_sys_path_entry(boot_directory)
+            # finally:
+            #     del_sys_path_entry(boot_directory)
+            except:
+                pass
 
             new_relic_path = boot_directory
-            do_insert_path = False
+            do_insert_path = True
         elif k8s_operator_enabled or azure_operator_enabled:
             # When installed with either the kubernetes operator or the
             # azure operator functionality enabled, we need to attempt to
