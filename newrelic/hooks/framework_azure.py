@@ -40,9 +40,9 @@ async def wrap_dispatcher__handle__invocation_request(wrapped, instance, args, k
 
     # Force default registration of the application instance
     # instead of lazy registration upon the first request
-    application = application_instance(os.environ.get("WEBSITE_SITE_NAME", None))
-    if application and not application.active:
-        application.activate()
+    # application = application_instance(os.environ.get("WEBSITE_SITE_NAME", None))
+    # if application and not application.active:
+    #     application.activate()
 
     request = bind_params(*args, **kwargs)
 
@@ -66,8 +66,13 @@ async def wrap_dispatcher__run_async_func(wrapped, instance, args, kwargs):
         return context, func, args
 
     context, func, params = bind_params(*args, **kwargs)
-    application = application_instance(os.environ.get("WEBSITE_SITE_NAME", None))
-    if not application.active:  # this should not be necessary but we will see
+    application = application_instance(
+        os.environ.get("NEW_RELIC_APP_NAME", os.environ.get("WEBSITE_SITE_NAME", None)), activate=False
+    )
+    if application and not application.active:
+        application.activate()
+    elif not application:
+        application = application_instance()
         application.activate()
 
     http_request = None
@@ -158,8 +163,13 @@ def wrap_dispatcher__run_sync_func(wrapped, instance, args, kwargs):
         return invocation_id, context, func, params
 
     invocation_id, context, func, params = bind_params(*args, **kwargs)
-    application = application_instance(os.environ.get("WEBSITE_SITE_NAME", None))
-    if not application.active:
+    application = application_instance(
+        os.environ.get("NEW_RELIC_APP_NAME", os.environ.get("WEBSITE_SITE_NAME", None)), activate=False
+    )
+    if application and not application.active:
+        application.activate()
+    elif not application:
+        application = application_instance()
         application.activate()
 
     http_request = None
