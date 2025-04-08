@@ -21,24 +21,24 @@ from newrelic.api.transaction import current_transaction
 from newrelic.api.web_transaction import WebTransaction
 from newrelic.common.object_wrapper import wrap_function_wrapper
 
-# def wrap_dispatcher__init__(wrapped, instance, args, kwargs):
-#     instance._nr_cold_start = True
-#     result = wrapped(*args, **kwargs)
-#     return result
-
 
 # TODO: This should serve as a way to determine the trigger type.
-# Right now, we only support HTTP, so this function is moot
-# but this will need to be utilized in the future
+# Right now, we only support HTTP, so this function serves to activate
+# the application if not already registered with the collector as well
+# as determining if this invocation was a cold start or not.
 async def wrap_dispatcher__handle__invocation_request(wrapped, instance, args, kwargs):
     def bind_params(request, *args, **kwargs):
         return request
 
     # Force default registration of the application instance
     # instead of lazy registration upon the first request
-    # application = application_instance(os.environ.get("WEBSITE_SITE_NAME", None))
-    # if application and not application.active:
-    #     application.activate()
+    app_name = os.environ.get("NEW_RELIC_APP_NAME", os.environ.get("WEBSITE_SITE_NAME", None))
+    application = application_instance(app_name, activate=False)
+    if application and not application.active:
+        application.activate()
+    elif not application:
+        application = application_instance(app_name)
+        application.activate()
 
     # Logic to determine if this is a cold start since we are not
     # able to access the logic in the __init__ method of the Dispatcher
@@ -69,13 +69,16 @@ async def wrap_dispatcher__run_async_func(wrapped, instance, args, kwargs):
         return context, func, args
 
     context, func, params = bind_params(*args, **kwargs)
+
     application = application_instance(
         os.environ.get("NEW_RELIC_APP_NAME", os.environ.get("WEBSITE_SITE_NAME", None)), activate=False
     )
     if application and not application.active:
         application.activate()
     elif not application:
-        application = application_instance()
+        application = application_instance(
+            os.environ.get("NEW_RELIC_APP_NAME", os.environ.get("WEBSITE_SITE_NAME", None))
+        )
         application.activate()
 
     http_request = None
@@ -172,7 +175,9 @@ def wrap_dispatcher__run_sync_func(wrapped, instance, args, kwargs):
     if application and not application.active:
         application.activate()
     elif not application:
-        application = application_instance()
+        application = application_instance(
+            os.environ.get("NEW_RELIC_APP_NAME", os.environ.get("WEBSITE_SITE_NAME", None))
+        )
         application.activate()
 
     http_request = None
