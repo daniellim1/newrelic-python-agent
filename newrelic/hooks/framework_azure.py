@@ -21,11 +21,10 @@ from newrelic.api.transaction import current_transaction
 from newrelic.api.web_transaction import WebTransaction
 from newrelic.common.object_wrapper import wrap_function_wrapper
 
-
-def wrap_dispatcher__init__(wrapped, instance, args, kwargs):
-    instance._nr_cold_start = True
-    result = wrapped(*args, **kwargs)
-    return result
+# def wrap_dispatcher__init__(wrapped, instance, args, kwargs):
+#     instance._nr_cold_start = True
+#     result = wrapped(*args, **kwargs)
+#     return result
 
 
 # TODO: This should serve as a way to determine the trigger type.
@@ -40,6 +39,13 @@ async def wrap_dispatcher__handle__invocation_request(wrapped, instance, args, k
     # application = application_instance(os.environ.get("WEBSITE_SITE_NAME", None))
     # if application and not application.active:
     #     application.activate()
+
+    # Logic to determine if this is a cold start since we are not
+    # able to access the logic in the __init__ method of the Dispatcher
+    # class with Python (in the Portal, this is done in C#)
+    if not hasattr(instance, "_nr_running_dispatcher"):
+        instance._nr_running_dispatcher = True
+        instance._nr_cold_start = True
 
     request = bind_params(*args, **kwargs)
 
@@ -241,10 +247,6 @@ def wrap_dispatcher__run_sync_func(wrapped, instance, args, kwargs):
             return wrapped(*args, **kwargs)
 
         with transaction:
-            # DEBUG LOGIC
-            transaction._add_agent_attribute("worker_id", instance.worker_id)
-            transaction._add_agent_attribute("request_id", instance.request_id)
-            ##############
             for key, value in azure_intrinsics.items():
                 transaction._add_agent_attribute(key, value)
             response = wrapped(*args, **kwargs)
@@ -281,7 +283,7 @@ def instrument_azure__http(module):
 
 
 def instrument_azure_functions_worker_dispatcher(module):
-    wrap_function_wrapper(module, "Dispatcher.__init__", wrap_dispatcher__init__)
+    # wrap_function_wrapper(module, "Dispatcher.__init__", wrap_dispatcher__init__)
 
     if hasattr(module, "Dispatcher") and hasattr(module.Dispatcher, "_handle__invocation_request"):
         wrap_function_wrapper(

@@ -101,8 +101,6 @@ _TRANSACTION_EVENT_DEFAULT_ATTRIBUTES = set(
         "response.headers.contentType",
         "response.status",
         "server.address",
-        "worker_id",
-        "request_id",
     )
 )
 
