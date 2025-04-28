@@ -158,7 +158,7 @@ class AWSUtilization(CommonUtilization):
     METADATA_HOST = "169.254.169.254"
     METADATA_PATH = "/latest/dynamic/instance-identity/document"
     METADATA_TOKEN_PATH = "/latest/api/token"  # noqa: S105
-    HEADERS = {"X-aws-ec2-metadata-token-ttl-seconds": "21600"}
+    HEADERS = {"X-aws-ec2-metadata-token-ttl-seconds": "60"}
     VENDOR_NAME = "aws"
 
     @classmethod
