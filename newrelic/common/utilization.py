@@ -173,7 +173,7 @@ class AWSUtilization(CommonUtilization):
             return resp[1]
         except Exception as e:
             _logger.debug(
-                "Unable to fetch %s data from %s%s: %r", cls.VENDOR_NAME, cls.METADATA_HOST, cls.METADATA_PATH, e
+                "Unable to fetch %s data from %s%s: %r", cls.VENDOR_NAME, cls.METADATA_HOST, cls.METADATA_TOKEN_PATH, e
             )
             return None
 
