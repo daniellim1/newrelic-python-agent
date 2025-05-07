@@ -171,6 +171,7 @@ class AWSUtilization(CommonUtilization):
             if not 200 <= resp[0] < 300:
                 _logger.debug("Error code: %s, Error response: %s, Complete Error: %s", resp[0], resp[1], resp)
                 raise ValueError(f"{resp[0]}: {resp[1]}")
+            _logger.debug("In fetchAuthToken: AWS metadata token is %s", resp[1])
             return resp[1]
         except Exception as e:
             _logger.debug(
@@ -183,10 +184,10 @@ class AWSUtilization(CommonUtilization):
         try:
             authToken = cls.fetchAuthToken()
             if authToken is None:
-                _logger.debug("AWS metadata token is None")
+                _logger.debug("In fetch: AWS metadata token is None")
                 return
             cls.HEADERS = {"X-aws-ec2-metadata-token": authToken}
-            _logger.debug("AWS metadata token is %s", authToken)
+            _logger.debug("In fetch: AWS metadata token is %s", authToken)
             with cls.CLIENT_CLS(cls.METADATA_HOST, timeout=cls.FETCH_TIMEOUT) as client:
                 resp = client.send_request(
                     method="GET", path=cls.METADATA_PATH, params=cls.METADATA_QUERY, headers=cls.HEADERS
