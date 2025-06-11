@@ -158,7 +158,7 @@ class AWSUtilization(CommonUtilization):
     METADATA_HOST = "169.254.169.254"
     METADATA_PATH = "/latest/dynamic/instance-identity/document"
     METADATA_TOKEN_PATH = "/latest/api/token"  # noqa: S105
-    HEADERS = {"X-aws-ec2-metadata-token-ttl-seconds": "60"}
+    HEADERS = {"X-aws-ec2-metadata-token-ttl-seconds": "21600"}
     VENDOR_NAME = "aws"
 
     @classmethod
@@ -169,9 +169,7 @@ class AWSUtilization(CommonUtilization):
                     method="PUT", path=cls.METADATA_TOKEN_PATH, params=cls.METADATA_QUERY, headers=cls.HEADERS
                 )
             if not 200 <= resp[0] < 300:
-                _logger.debug("Error code: %s, Error response: %s, Complete Error: %s", resp[0], resp[1], resp)
-                raise ValueError(f"{resp[0]}: {resp[1]}")
-            _logger.debug("In fetchAuthToken: AWS metadata token is %s", resp[1])
+                raise ValueError(resp[0])
             return resp[1]
         except Exception as e:
             _logger.debug(
@@ -184,17 +182,20 @@ class AWSUtilization(CommonUtilization):
         try:
             authToken = cls.fetchAuthToken()
             if authToken is None:
-                _logger.debug("In fetch: AWS metadata token is None")
+                metadata = os.environ.get("NEW_RELIC_AWS_METADATA", None)
+                if metadata:
+                    _logger.debug("Using cached %s data from environment variable", cls.VENDOR_NAME)
+                    return metadata.encode("utf-8")
                 return
             cls.HEADERS = {"X-aws-ec2-metadata-token": authToken}
-            _logger.debug("In fetch: AWS metadata token is %s", authToken)
             with cls.CLIENT_CLS(cls.METADATA_HOST, timeout=cls.FETCH_TIMEOUT) as client:
                 resp = client.send_request(
                     method="GET", path=cls.METADATA_PATH, params=cls.METADATA_QUERY, headers=cls.HEADERS
                 )
             if not 200 <= resp[0] < 300:
-                _logger.debug("Error code: %s, Error response: %s, Complete Error: %s", resp[0], resp[1], resp)
-                raise ValueError(f"{resp[0]}: {resp[1]}")
+                raise ValueError(resp[0])
+            # Cache this for forced agent restarts within the same environment
+            os.environ["NEW_RELIC_AWS_METADATA"] = resp[1].decode("utf-8")
             return resp[1]
         except Exception as e:
             _logger.debug(
