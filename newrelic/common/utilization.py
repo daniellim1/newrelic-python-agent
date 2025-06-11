@@ -184,8 +184,10 @@ class AWSUtilization(CommonUtilization):
             if authToken is None:
                 metadata = os.environ.get("NEW_RELIC_AWS_METADATA", None)
                 if metadata:
+                    _logger.debug("Cached Metadata: %s", metadata)
                     _logger.debug("Using cached %s data from environment variable", cls.VENDOR_NAME)
                     return metadata.encode("utf-8")
+                _logger.debug("authToken=None and no cached %s data found in environment variable", cls.VENDOR_NAME)
                 return
             cls.HEADERS = {"X-aws-ec2-metadata-token": authToken}
             with cls.CLIENT_CLS(cls.METADATA_HOST, timeout=cls.FETCH_TIMEOUT) as client:
@@ -196,6 +198,7 @@ class AWSUtilization(CommonUtilization):
                 raise ValueError(resp[0])
             # Cache this for forced agent restarts within the same environment
             os.environ["NEW_RELIC_AWS_METADATA"] = resp[1].decode("utf-8")
+            _logger.debug("Caching Metadata in environment variable: %s", os.environ["NEW_RELIC_AWS_METADATA"])
             return resp[1]
         except Exception as e:
             _logger.debug(
